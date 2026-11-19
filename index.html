@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MINDSPACE</title>
+<style>
+:root{--bg:#07070a;--panel:rgba(255,255,255,.06);--line:rgba(255,255,255,.12);--text:#f2f0f7;--muted:#a9a4b8;--lav:#b8a6e6;--blue:#3d8bff;--danger:#ff6b8a}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:radial-gradient(circle at 20% 0%,#1a1530,transparent 40%),radial-gradient(circle at 90% 100%,#0b2040,transparent 45%),var(--bg);color:var(--text);min-height:100vh}
+header{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:12px 16px;backdrop-filter:blur(14px);background:rgba(7,7,10,.6);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{font-weight:800;letter-spacing:.2em;color:var(--lav)}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{background:none;border:1px solid transparent;color:var(--muted);padding:6px 10px;border-radius:999px;cursor:pointer;font:inherit}
+nav button[aria-current="page"],nav button:hover,nav button:focus-visible{color:var(--text);border-color:var(--line);background:var(--panel);outline:none}
+main{max-width:980px;margin:0 auto;padding:24px 16px 60px}
+main>section{display:none}
+main>section.active{display:block;animation:fade .5s ease}
+@keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;backdrop-filter:blur(12px);margin-bottom:16px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+h1{font-size:clamp(1.6rem,4vw,2.4rem);margin:0 0 14px}
+h2{font-size:1.1rem;margin:0 0 12px;color:var(--lav)}
+.muted{color:var(--muted)}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.stat{font-size:2rem;font-weight:700;margin:4px 0}
+input,textarea,select{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:10px;font:inherit}
+textarea{min-height:90px;resize:vertical}
+label{display:block;font-size:.85rem;color:var(--muted);margin:10px 0 4px}
+.btn{background:linear-gradient(135deg,var(--lav),var(--blue));color:#08080c;border:0;border-radius:12px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer;transition:transform .2s,box-shadow .2s;text-decoration:none;display:inline-block}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(61,139,255,.35)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.btn.danger{background:var(--danger)}
+.moods{display:flex;flex-wrap:wrap;gap:8px}
+.mood{flex:1;min-width:110px;padding:12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text);cursor:pointer;font:inherit;transition:.2s}
+.mood[aria-pressed="true"]{border-color:var(--lav);box-shadow:0 0 22px rgba(184,166,230,.35);background:rgba(184,166,230,.12)}
+.item{border-bottom:1px solid var(--line);padding:10px 0}
+.tag{display:inline-block;font-size:.75rem;padding:2px 8px;border-radius:999px;background:rgba(61,139,255,.15);color:#9cc4ff;margin:2px 4px 2px 0}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.msg{font-size:.9rem;color:var(--lav);min-height:1.2em;margin:8px 0}
+.err{color:var(--danger)!important}
+canvas{width:100%;height:220px;display:block}
+.bar-wrap{height:6px;background:rgba(255,255,255,.08);border-radius:6px;overflow:hidden;margin-top:8px}
+.bar{height:100%;background:linear-gradient(90deg,var(--lav),var(--blue));width:0;transition:width 1s ease}
+.orb{width:110px;height:110px;flex:0 0 auto;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff8,#b8a6e6 40%,#3d8bff55 70%,transparent 72%);animation:float 6s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-14px) scale(1.04)}}
+details summary{cursor:pointer;font-weight:600;padding:4px 0}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);padding:10px 16px;opacity:0;transition:opacity .3s;z-index:9;background:var(--panel);border:1px solid var(--line);border-radius:999px;backdrop-filter:blur(12px);max-width:90vw}
+body.light{--bg:#f4f2fa;--text:#16141f;--muted:#5b5670;--panel:rgba(255,255,255,.7);--line:rgba(0,0,0,.12);--lav:#6d4fc2}
+body.light header{background:rgba(255,255,255,.7)}
+body.light .mood{background:#fff}
+body.light input,body.light textarea,body.light select{background:#fff;color:#16141f}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media (max-width:600px){header{justify-content:center}.orb{display:none}}
+</style>
+</head>
+<body>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<header>
+  <div class="brand">MINDSPACE</div>
+  <nav aria-label="Navigasi utama">
+    <button data-page="home">Beranda</button>
+    <button data-page="mood">Mood</button>
+    <button data-page="analytics">Analitik</button>
+    <button data-page="meds">Obat</button>
+    <button data-page="journal">Jurnal</button>
+    <button data-page="reflect">Refleksi</button>
+    <button data-page="knowledge">Pengetahuan</button>
+    <button data-page="safety">Keselamatan</button>
+    <button data-page="settings">Pengaturan</button>
+  </nav>
+</header>
+
+<main>
+
+<section id="home">
+  <div class="card row">
+    <div><h1 id="greet">Halo</h1><p class="muted">Ruang kecil untuk memantau dan memahami dirimu.</p></div>
+    <div class="orb" aria-hidden="true"></div>
+  </div>
+  <div class="grid">
+    <div class="card"><p class="muted">Mood terakhir</p><div class="stat" id="h-mood">—</div></div>
+    <div class="card"><p class="muted">Rata-rata mood 7 hari</p><div class="stat" id="h-avg">—</div></div>
+    <div class="card"><p class="muted">Obat hari ini</p><div class="stat" id="h-meds">—</div><div class="bar-wrap"><div class="bar" id="h-meds-bar"></div></div></div>
+    <div class="card"><p class="muted">Entri jurnal</p><div class="stat" id="h-journal">0</div></div>
+  </div>
+  <div class="card"><h2>Check-in cepat</h2><p class="muted">Bagaimana perasaanmu sekarang?</p><button class="btn" data-go="mood">Catat mood</button></div>
+</section>
+
+<section id="mood">
+  <h1>Mood Space</h1>
+  <div class="card">
+    <h2>Bagaimana perasaanmu?</h2>
+    <div class="moods" id="mood-buttons"></div>
+    <label for="intensity">Intensitas: <output id="int-out">5</output>/10</label>
+    <input type="range" id="intensity" min="1" max="10" value="5">
+    <div class="grid">
+      <div><label for="sleep">Jam tidur semalam</label><input type="number" id="sleep" min="0" max="24" step="0.5" value="7"></div>
+      <div><label for="mood-tags">Tag (pisahkan dengan koma)</label><input id="mood-tags" maxlength="120" placeholder="kerja, lelah, keluarga"></div>
+    </div>
+    <label for="mood-note">Catatan pribadi</label>
+    <textarea id="mood-note" maxlength="1000"></textarea>
+    <p class="msg" id="mood-msg"></p>
+    <button class="btn" id="mood-save">Simpan mood</button>
+  </div>
+  <div class="card"><h2>Riwayat mood</h2><div id="mood-list"></div></div>
+</section>
+
+<section id="analytics">
+  <h1>Mind Analytics</h1>
+  <div class="grid">
+    <div class="card"><p class="muted">Rata-rata mood (7 hari)</p><div class="stat" id="a-mood">—</div></div>
+    <div class="card"><p class="muted">Rata-rata tidur (7 hari)</p><div class="stat" id="a-sleep">—</div></div>
+    <div class="card"><p class="muted">Korelasi tidur–mood</p><div class="stat" id="a-corr">—</div></div>
+  </div>
+  <div class="card">
+    <h2>14 hari terakhir</h2>
+    <canvas id="chart" role="img" aria-label="Grafik mood dan tidur 14 hari terakhir"></canvas>
+    <p class="muted">Batang: mood rata-rata (skala 1–5). Garis biru: jam tidur.</p>
+  </div>
+  <div class="card"><h2>Insight</h2><p id="a-insight" class="muted"></p></div>
+</section>
+
+<section id="meds">
+  <h1>Medication</h1>
+  <div class="card">
+    <h2>Tambah pengingat obat</h2>
+    <div class="grid">
+      <div><label for="med-name">Nama obat</label><input id="med-name" maxlength="80"></div>
+      <div><label for="med-time">Jadwal</label><input type="time" id="med-time" value="08:00"></div>
+    </div>
+    <p class="msg" id="med-msg"></p>
+    <button class="btn" id="med-save">Tambah</button>
+  </div>
+  <div class="card"><h2>Jadwal hari ini (<span id="med-date"></span>)</h2><div id="med-list"></div></div>
+  <div class="card"><h2>Adherence 7 hari</h2><div class="stat" id="med-adh">—</div><div id="med-week"></div></div>
+  <p class="muted">MINDSPACE hanya mencatat. Ikuti resep dan konsultasikan perubahan obat dengan dokter atau apoteker.</p>
+</section>
+
+<section id="journal">
+  <h1>Journal</h1>
+  <div class="card">
+    <label for="j-title">Judul</label><input id="j-title" maxlength="120">
+    <label for="j-mood">Mood</label><select id="j-mood"><option value="">Tidak disebutkan</option></select>
+    <label for="j-body">Tulis di sini</label>
+    <textarea id="j-body" style="min-height:160px" maxlength="5000"></textarea>
+    <p class="msg" id="j-msg"></p>
+    <button class="btn" id="j-save">Simpan entri</button>
+  </div>
+  <div class="card">
+    <div class="grid">
+      <input id="j-search" placeholder="Cari di jurnal…" aria-label="Cari jurnal">
+      <select id="j-filter" aria-label="Filter mood"><option value="">Semua mood</option></select>
+    </div>
+    <div id="j-list" style="margin-top:12px"></div>
+  </div>
+</section>
+
+<section id="reflect">
+  <h1>Guided Reflection</h1>
+  <div class="card">
+    <h2>Check-in emosi</h2>
+    <div class="grid">
+      <div><label for="r-emotion">Emosi dominan</label>
+        <select id="r-emotion"><option>Tenang</option><option>Cemas</option><option>Sedih</option><option>Marah</option><option>Bersemangat</option><option>Lelah</option></select></div>
+      <div><label for="r-energy">Energi: <output id="r-out">5</output>/10</label><input type="range" id="r-energy" min="0" max="10" value="5"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Pertanyaan hari ini</h2>
+    <div id="r-questions"></div>
+    <p class="msg" id="r-msg"></p>
+    <button class="btn" id="r-save">Simpan refleksi</button>
+  </div>
+  <div class="card"><h2>Riwayat refleksi</h2><div id="r-list"></div></div>
+</section>
+
+<section id="knowledge">
+  <h1>Knowledge Space</h1>
+  <p class="muted">Informasi edukatif, bukan pengganti diagnosis atau perawatan profesional.</p>
+  <div class="card"><details open><summary>Apa itu gangguan bipolar?</summary>
+    <p>Gangguan bipolar ditandai perubahan suasana hati yang ekstrem, mulai dari episode mania atau hipomania (energi sangat tinggi, dorongan berlebihan, tidur berkurang) hingga episode depresi. Diagnosis dan pengobatan dilakukan oleh tenaga profesional.</p></details></div>
+  <div class="card"><details><summary>Tidur dan mood</summary>
+    <p>Pola tidur yang tidak teratur sering berkaitan dengan perubahan mood. Menjaga jadwal tidur yang konsisten adalah langkah sederhana yang membantu banyak orang.</p></details></div>
+  <div class="card"><details><summary>Regulasi emosi</summary>
+    <p>Teknik seperti jeda napas, menamai emosi (“saya sedang merasa cemas”), dan menulis jurnal dapat memberi ruang antara perasaan dan reaksi.</p></details></div>
+  <div class="card"><details><summary>Self-care dasar</summary>
+    <p>Makan teratur, bergerak ringan, membatasi alkohol dan kafein di malam hari, serta terhubung dengan orang yang dipercaya adalah fondasi perawatan diri.</p></details></div>
+</section>
+
+<section id="safety">
+  <h1>Safety Space</h1>
+  <div class="card" style="border-color:var(--danger)">
+    <h2 style="color:var(--danger)">Jika kamu dalam bahaya sekarang</h2>
+    <p>Hubungi <strong>112</strong> atau pergi ke IGD terdekat. Layanan SEJIWA Kemenkes: <strong>119 ext 8</strong>. Pastikan nomor masih berlaku sebelum digunakan. Kamu tidak perlu menunggu sampai keadaan benar-benar parah untuk meminta bantuan.</p>
+  </div>
+  <div class="card">
+    <h2>Rencana keselamatan pribadi</h2>
+    <label for="s-warn">Tanda-tanda peringatan dini</label><textarea id="s-warn" maxlength="1000"></textarea>
+    <label for="s-cope">Strategi coping yang membantu</label><textarea id="s-cope" maxlength="1000"></textarea>
+    <label for="s-contacts">Kontak darurat dan orang yang bisa dihubungi</label><textarea id="s-contacts" maxlength="1000"></textarea>
+    <p class="msg" id="s-msg"></p>
+    <button class="btn" id="s-save">Simpan rencana</button>
+  </div>
+</section>
+
+<section id="settings">
+  <h1>Settings</h1>
+  <div class="card">
+    <h2>Tampilan dan pengingat</h2>
+    <label for="set-theme">Tema</label>
+    <select id="set-theme"><option value="dark">Gelap</option><option value="light">Terang</option></select>
+    <label><input type="checkbox" id="set-reminder" style="width:auto"> Aktifkan pengingat check-in</label>
+    <label for="set-time">Waktu pengingat</label>
+    <input type="time" id="set-time" value="20:00">
+    <p style="margin-top:14px"><button class="btn" id="set-save">Simpan pengaturan</button></p>
+  </div>
+  <div class="card">
+    <h2>Data lokal</h2>
+    <p class="muted">Data disimpan di perangkat ini (localStorage).</p>
+    <div class="row">
+      <button class="btn ghost" id="exp">Ekspor JSON</button>
+      <label class="btn ghost" style="cursor:pointer;margin:0">Impor JSON<input type="file" id="imp" accept="application/json" hidden></label>
+      <button class="btn danger" id="clear">Hapus semua data</button>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(() => {
+'use strict';
+const KEY = 'mindspace.v1';
+const MOODS = [['sangat-baik','😄 Sangat baik',5],['baik','🙂 Baik',4],['netral','😐 Netral',3],['rendah','😔 Rendah',2],['sangat-rendah','😢 Sangat rendah',1]];
+const QUESTIONS = [
+  'Apa satu hal yang membuatku merasa sedikit lebih baik hari ini?',
+  'Apa yang paling menguras energiku, dan bagaimana aku meresponsnya?',
+  'Kapan aku merasa paling tenang hari ini?',
+  'Apa satu hal kecil yang bisa kulakukan besok untuk merawat diriku?'
+];
+const DEF = { moods:[], journal:[], meds:[], medLogs:{}, reflections:[], safety:{warn:'',cope:'',contacts:''}, settings:{theme:'dark',reminder:false,time:'20:00'}, lastReminder:'' };
+let S = structuredClone(DEF);
+let selMood = null;
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const pad = n => String(n).padStart(2,'0');
+const dayStr = (off=0) => { const d = new Date(); d.setDate(d.getDate()-off); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+const today = () => dayStr(0);
+const moodLabel = k => (MOODS.find(m => m[0] === k) || [0,'—'])[1];
+const moodVal = k => (MOODS.find(m => m[0] === k) || [0,0,0])[2];
+const mkOpts = () => MOODS.map(([k,l]) => h('option',{value:k},l));
+
+function h(tag, attrs={}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)) {
+    if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'class') e.className = v;
+    else e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) {
+    if (c == null || c === false) continue;
+    e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return e;
+}
+
+function toast(msg, err) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.style.color = err ? 'var(--danger)' : 'var(--text)';
+  t.style.opacity = '1';
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => t.style.opacity = '0', 2800);
+}
+function formMsg(id, text, err) {
+  const el = $(id); el.textContent = text || ''; el.className = 'msg' + (err ? ' err' : '');
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); return true; }
+  catch (e) { toast('Gagal menyimpan. Penyimpanan mungkin penuh.', true); return false; }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) { const p = JSON.parse(raw); if (p && typeof p === 'object') S = {...structuredClone(DEF), ...p, settings:{...DEF.settings,...(p.settings||{})}}; }
+  } catch (e) { toast('Data lokal rusak dan diabaikan.', true); }
+}
+function pearson(x, y) {
+  const n = x.length; if (n < 3) return null;
+  const mx = x.reduce((a,b)=>a+b,0)/n, my = y.reduce((a,b)=>a+b,0)/n;
+  let num=0, dx=0, dy=0;
+  for (let i=0;i<n;i++){ const a=x[i]-mx, b=y[i]-my; num+=a*b; dx+=a*a; dy+=b*b; }
+  return dx && dy ? num/Math.sqrt(dx*dy) : 0;
+}
+
+/* ---------- HOME ---------- */
+function renderHome() {
+  const hr = new Date().getHours();
+  const g = hr<11 ? 'Selamat pagi' : hr<15 ? 'Selamat siang' : hr<19 ? 'Selamat sore' : 'Selamat malam';
+  $('#greet').textContent = g + '. Bagaimana kabarmu?';
+  const last = S.moods[0];
+  $('#h-mood').textContent = last ? moodLabel(last.mood) : 'Belum ada';
+  const w = S.moods.filter(m => m.date >= dayStr(6));
+  $('#h-avg').textContent = w.length ? (w.reduce((a,m)=>a+moodVal(m.mood),0)/w.length).toFixed(1)+' / 5' : '—';
+  const n = S.meds.length;
+  const log = S.medLogs[today()] || {};
+  const taken = S.meds.filter(m => log[m.id]).length;
+  $('#h-meds').textContent = n ? `${taken}/${n}` : '—';
+  $('#h-meds-bar').style.width = n ? (taken/n*100)+'%' : '0';
+  $('#h-journal').textContent = S.journal.length;
+}
+
+/* ---------- MOOD ---------- */
+function renderMood() {
+  $('#mood-buttons').replaceChildren(...MOODS.map(([k,l]) =>
+    h('button',{class:'mood',type:'button','aria-pressed':String(selMood===k),onclick:()=>{selMood=k;renderMood();}},l)));
+  const list = $('#mood-list');
+  if (!S.moods.length) { list.replaceChildren(h('p',{class:'muted'},'Belum ada catatan. Pilih mood di atas untuk memulai.')); return; }
+  list.replaceChildren(...S.moods.slice(0,30).map(m =>
+    h('div',{class:'item'},
+      h('div',{class:'row'},
+        h('strong',{}, moodLabel(m.mood)+' · intensitas '+m.intensity+'/10'),
+        h('span',{class:'muted'}, m.date+' · tidur '+m.sleep+' jam')),
+      m.tags.length ? h('div',{}, ...m.tags.map(t=>h('span',{class:'tag'},t))) : null,
+      m.note ? h('p',{class:'muted',style:'white-space:pre-wrap'}, m.note) : null,
+      h('button',{class:'btn ghost',type:'button',onclick:()=>{
+        S.moods = S.moods.filter(x=>x.id!==m.id); save(); renderMood(); toast('Catatan dihapus');
+      }},'Hapus'))));
+}
+function saveMood() {
+  if (!selMood) return formMsg('#mood-msg','Pilih mood terlebih dahulu.',true);
+  const sleep = parseFloat($('#sleep').value);
+  if (Number.isNaN(sleep) || sleep<0 || sleep>24) return formMsg('#mood-msg','Jam tidur harus antara 0 dan 24.',true);
+  const tags = $('#mood-tags').value.split(',').map(t=>t.trim().toLowerCase().slice(0,30)).filter(Boolean).slice(0,8);
+  S.moods.unshift({ id:uid(), date:today(), mood:selMood, intensity:+$('#intensity').value, sleep, tags, note:$('#mood-note').value.trim().slice(0,1000) });
+  if (!save()) return;
+  selMood = null;
+  $('#mood-tags').value=''; $('#mood-note').value=''; $('#intensity').value=5; $('#int-out').textContent='5'; $('#sleep').value='7';
+  formMsg('#mood-msg','');
+  toast('Mood tersimpan 💜');
+  renderMood();
+}
+
+/* ---------- ANALYTICS ---------- */
+function renderAnalytics() {
+  const w = S.moods.filter(m => m.date >= dayStr(6));
+  const avgM = w.length ? w.reduce((a,m)=>a+moodVal(m.mood),0)/w.length : null;
+  const avgS = w.length ? w.reduce((a,m)=>a+m.sleep,0)/w.length : null;
+  $('#a-mood').textContent = avgM==null ? '—' : avgM.toFixed(1)+' / 5';
+  $('#a-sleep').textContent = avgS==null ? '—' : avgS.toFixed(1)+' jam';
+  const all = S.moods.slice(0,200);
+  const r = pearson(all.map(m=>m.sleep), all.map(m=>moodVal(m.mood)));
+  $('#a-corr').textContent = r==null ? 'Butuh 3+ catatan' : r.toFixed(2);
+  let insight = 'Catat mood beberapa hari lagi untuk melihat pola.';
+  if (avgM!=null && avgS!=null) {
+    if (avgS<6 && avgM<3) insight = 'Dalam 7 hari terakhir, tidur yang pendek sering muncul bersama mood yang lebih rendah. Perhatikan pola ini, dan jika terus berlanjut, bicarakan dengan tenaga profesional.';
+    else if (r!=null && r>0.4) insight = 'Ada kecenderungan mood lebih baik pada hari dengan tidur lebih panjang.';
+    else insight = 'Belum ada pola tidur–mood yang kuat dalam catatanmu. Terus catat untuk melihat tren yang lebih jelas.';
+  }
+  $('#a-insight').textContent = insight;
+  drawChart();
+}
+function drawChart() {
+  const c = $('#chart'), ctx = c.getContext('2d'), dpr = window.devicePixelRatio || 1;
+  const W = c.clientWidth, H = c.clientHeight;
+  c.width = W*dpr; c.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H);
+  const M = 30, days = [...Array(14)].map((_,i)=>dayStr(13-i)), bw = (W-M*2)/14;
+  const yMood = v => H-M-(v/5)*(H-M*2), yH = v => H-M-(v/12)*(H-M*2);
+  ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.fillStyle='#a9a4b8'; ctx.font='11px system-ui';
+  for (let v=0; v<=5; v++) { const y=yMood(v); ctx.beginPath(); ctx.moveTo(M,y); ctx.lineTo(W-M,y); ctx.stroke(); ctx.fillText(v,6,y+4); }
+  const pts = days.map(d => {
+    const ms = S.moods.filter(m=>m.date===d);
+    return ms.length ? { mood: ms.reduce((a,m)=>a+moodVal(m.mood),0)/ms.length, sleep: ms.reduce((a,m)=>a+m.sleep,0)/ms.length } : { mood:null, sleep:null };
+  });
+  days.forEach((d,i) => {
+    const x = M+i*bw+bw*0.2, bwid = bw*0.6, p = pts[i];
+    if (p.mood!=null) { const y = yMood(p.mood); ctx.fillStyle='rgba(184,166,230,.8)'; ctx.fillRect(x,y,bwid,H-M-y); }
+    if (i%3===0) { ctx.fillStyle='#a9a4b8'; ctx.fillText(d.slice(8), x, H-M+14); }
+  });
+  ctx.strokeStyle='#3d8bff'; ctx.lineWidth=2; ctx.beginPath(); let started=false;
+  pts.forEach((p,i) => {
+    if (p.sleep==null) return;
+    const x = M+i*bw+bw/2, y = yH(p.sleep);
+    if (!started) { ctx.moveTo(x,y); started=true; } else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
+
+/* ---------- MEDS ---------- */
+function renderMeds() {
+  $('#med-date').textContent = today();
+  const log = S.medLogs[today()] || {};
+  const list = $('#med-list');
+  if (!S.meds.length) list.replaceChildren(h('p',{class:'muted'},'Belum ada obat terdaftar.'));
+  else list.replaceChildren(...[...S.meds].sort((a,b)=>a.time.localeCompare(b.time)).map(m => {
+    const cb = h('input',{type:'checkbox',style:'width:auto;margin-right:8px',onchange:e=>toggleMed(m.id,e.target.checked)});
+    cb.checked = !!log[m.id];
+    return h('div',{class:'item row'},
+      h('label',{style:'margin:0;color:var(--text);cursor:pointer;display:flex;align-items:center'}, cb, m.name+' · '+m.time),
+      h('button',{class:'btn ghost',type:'button',onclick:()=>{S.meds=S.meds.filter(x=>x.id!==m.id);save();renderMeds();toast('Obat dihapus');}},'Hapus'));
+  }));
+  let total=0, done=0;
+  const days = [...Array(7)].map((_,i)=>dayStr(6-i));
+  const bars = days.map(d => {
+    const l = S.medLogs[d]||{};
+    const n = S.meds.length, t = S.meds.filter(m=>l[m.id]).length;
+    total += n; done += t;
+    const pct = n ? t/n : 0;
+    return h('div',{class:'row',style:'margin:6px 0'},
+      h('span',{class:'muted'}, d.slice(5)),
+      h('div',{class:'bar-wrap',style:'flex:1;margin:0 12px'}, h('div',{class:'bar',style:`width:${pct*100}%`})),
+      h('span',{class:'muted'}, n ? `${t}/${n}` : '—'));
+  });
+  $('#med-adh').textContent = total ? Math.round(done/total*100)+'%' : '—';
+  $('#med-week').replaceChildren(...bars);
+}
+function toggleMed(id, on) {
+  const d = today(); S.medLogs[d] = S.medLogs[d] || {};
+  if (on) S.medLogs[d][id] = true; else delete S.medLogs[d][id];
+  save(); renderMeds(); toast(on ? 'Dicatat ✓' : 'Catatan dibatalkan');
+}
+function addMed() {
+  const name = $('#med-name').value.trim(), time = $('#med-time').value;
+  if (!name) return formMsg('#med-msg','Nama obat wajib diisi.',true);
+  if (!time) return formMsg('#med-msg','Pilih jadwal.',true);
+  S.meds.push({ id:uid(), name:name.slice(0,80), time });
+  if (!save()) return;
+  $('#med-name').value=''; formMsg('#med-msg','');
+  toast('Obat ditambahkan'); renderMeds();
+}
+
+/* ---------- JOURNAL ---------- */
+function renderJournal() {
+  const q = $('#j-search').value.trim().toLowerCase(), f = $('#j-filter').value;
+  const items = S.journal.filter(e => (!f || e.mood===f) && (!q || (e.title+' '+e.body).toLowerCase().includes(q)));
+  const list = $('#j-list');
+  if (!items.length) { list.replaceChildren(h('p',{class:'muted'}, S.journal.length ? 'Tidak ada entri yang cocok.' : 'Belum ada entri. Mulai menulis di atas.')); return; }
+  list.replaceChildren(...items.map(e =>
+    h('div',{class:'item'},
+      h('div',{class:'row'},
+        h('strong',{}, e.title || 'Tanpa judul'),
+        h('span',{class:'muted'}, new Date(e.created).toLocaleString('id-ID'))),
+      e.mood ? h('span',{class:'tag'}, moodLabel(e.mood)) : null,
+      h('p',{style:'white-space:pre-wrap'}, e.body),
+      h('button',{class:'btn ghost',type:'button',onclick:()=>{S.journal=S.journal.filter(x=>x.id!==e.id);save();renderJournal();toast('Entri dihapus');}},'Hapus'))));
+}
+function saveJournal() {
+  const body = $('#j-body').value.trim();
+  if (!body) return formMsg('#j-msg','Tulisan tidak boleh kosong.',true);
+  S.journal.unshift({ id:uid(), title:$('#j-title').value.trim().slice(0,120), mood:$('#j-mood').value, body:body.slice(0,5000), created:new Date().toISOString() });
+  if (!save()) return;
+  $('#j-title').value=''; $('#j-body').value=''; $('#j-mood').value=''; formMsg('#j-msg','');
+  toast('Entri tersimpan'); renderJournal();
+}
+
+/* ---------- REFLECTION ---------- */
+function renderReflect() {
+  const box = $('#r-questions');
+  if (!box.children.length) box.replaceChildren(...QUESTIONS.map((q,i) =>
+    h('div',{}, h('label',{for:'rq'+i}, q), h('textarea',{id:'rq'+i, maxlength:'1000'}))));
+  const list = $('#r-list');
+  if (!S.reflections.length) { list.replaceChildren(h('p',{class:'muted'},'Belum ada refleksi.')); return; }
+  list.replaceChildren(...S.reflections.slice(0,20).map(r =>
+    h('div',{class:'item'},
+      h('div',{class:'row'}, h('strong',{}, r.emotion+' · energi '+r.energy+'/10'), h('span',{class:'muted'}, r.date)),
+      ...r.answers.map((a,i) => a ? h('p',{class:'muted'}, QUESTIONS[i]+' — '+a) : null))));
+}
+function saveReflect() {
+  const answers = QUESTIONS.map((_,i) => $('#rq'+i).value.trim().slice(0,1000));
+  if (!answers.some(Boolean)) return formMsg('#r-msg','Isi minimal satu pertanyaan.',true);
+  S.reflections.unshift({ id:uid(), date:today(), emotion:$('#r-emotion').value, energy:+$('#r-energy').value, answers });
+  if (!save()) return;
+  answers.forEach((_,i) => $('#rq'+i).value='');
+  formMsg('#r-msg',''); toast('Refleksi tersimpan'); renderReflect();
+}
+
+/* ---------- SAFETY ---------- */
+function renderSafety() {
+  $('#s-warn').value = S.safety.warn; $('#s-cope').value = S.safety.cope; $('#s-contacts').value = S.safety.contacts;
+}
+function saveSafety() {
+  S.safety = { warn:$('#s-warn').value.slice(0,1000), cope:$('#s-cope').value.slice(0,1000), contacts:$('#s-contacts').value.slice(0,1000) };
+  if (save()) toast('Rencana keselamatan tersimpan');
+}
+
+/* ---------- SETTINGS ---------- */
+function applyTheme() { document.body.classList.toggle('light', S.settings.theme==='light'); }
+function renderSettings() {
+  $('#set-theme').value = S.settings.theme;
+  $('#set-reminder').checked = !!S.settings.reminder;
+  $('#set-time').value = S.settings.time || '20:00';
+  applyTheme();
+}
+function saveSettings() {
+  S.settings = { theme:$('#set-theme').value, reminder:$('#set-reminder').checked, time:$('#set-time').value || '20:00' };
+  if (!save()) return;
+  applyTheme();
+  if (S.settings.reminder && 'Notification' in window && Notification.permission==='default') Notification.requestPermission();
+  toast('Pengaturan disimpan');
+}
+function exportData() {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
+  const a = h('a',{href:url, download:'mindspace-'+today()+'.json'});
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function importData(file) {
+  if (!file) return;
+  if (file.size > 5e6) return toast('File terlalu besar (maks 5 MB).', true);
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || typeof data!=='object' || !Array.isArray(data.moods) || !Array.isArray(data.journal)) throw new Error('format');
+    S = {...structuredClone(DEF), ...data, settings:{...DEF.settings,...(data.settings||{})}};
+    if (save()) { toast('Data berhasil diimpor'); renderSettings(); }
+  } catch (e) { toast('File tidak valid.', true); }
+  $('#imp').value = '';
+}
+function clearAll() {
+  if (!confirm('Hapus semua data MINDSPACE di perangkat ini? Tindakan ini tidak bisa dibatalkan.')) return;
+  localStorage.removeItem(KEY); S = structuredClone(DEF); renderSettings(); toast('Semua data dihapus');
+}
+
+/* ---------- REMINDER ---------- */
+function checkReminder() {
+  const s = S.settings; if (!s.reminder) return;
+  const now = new Date(), hm = pad(now.getHours())+':'+pad(now.getMinutes()), d = today();
+  if (hm === s.time && S.lastReminder !== d) {
+    S.lastReminder = d; save();
+    toast('Waktunya check-in mood 💜');
+    if ('Notification' in window && Notification.permission==='granted') new Notification('MINDSPACE', { body:'Waktunya check-in singkat.' });
+  }
+}
+
+/* ---------- NAVIGATION ---------- */
+const renderers = { home:renderHome, mood:renderMood, analytics:renderAnalytics, meds:renderMeds, journal:renderJournal, reflect:renderReflect, safety:renderSafety, settings:renderSettings };
+function show(id) {
+  if (!renderers[id]) id = 'home';
+  $$('main>section').forEach(s => s.classList.toggle('active', s.id===id));
+  $$('nav button').forEach(b => b.dataset.page===id ? b.setAttribute('aria-current','page') : b.removeAttribute('aria-current'));
+  history.replaceState(null, '', '#'+id);
+  renderers[id]();
+  window.scrollTo(0,0);
+}
+
+/* ---------- INIT ---------- */
+function init() {
+  load();
+  $('#j-mood').append(...mkOpts());
+  $('#j-filter').append(...mkOpts());
+  document.querySelector('nav').addEventListener('click', e => { const b = e.target.closest('button[data-page]'); if (b) show(b.dataset.page); });
+  document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g) show(g.dataset.go); });
+  $('#intensity').addEventListener('input', e => $('#int-out').textContent = e.target.value);
+  $('#r-energy').addEventListener('input', e => $('#r-out').textContent = e.target.value);
+  $('#mood-save').onclick = saveMood;
+  $('#med-save').onclick = addMed;
+  $('#j-save').onclick = saveJournal;
+  $('#j-search').oninput = renderJournal;
+  $('#j-filter').onchange = renderJournal;
+  $('#r-save').onclick = saveReflect;
+  $('#s-save').onclick = saveSafety;
+  $('#set-save').onclick = saveSettings;
+  $('#exp').onclick = exportData;
+  $('#imp').onchange = e => importData(e.target.files[0]);
+  $('#clear').onclick = clearAll;
+  window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+  window.addEventListener('resize', () => { if ($('#analytics').classList.contains('active')) drawChart(); });
+  applyTheme();
+  show(location.hash.slice(1) || 'home');
+  setInterval(checkReminder, 30000);
+  checkReminder();
+}
+init();
+})();
+</script>
+</body>
+</html>
